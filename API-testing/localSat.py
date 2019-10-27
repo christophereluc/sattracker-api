@@ -15,5 +15,5 @@ response= requests.get("https://www.n2yo.com/rest/v1/satellite/above/"+observer_
 json_data=response.json()
 #print(json_data['above'][0]['satname'])
 for i in json_data['above']:
-    print i['satname'],
-    print i['satid']
+    print(i['satname'])
+    print(i['satid'])
