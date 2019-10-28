@@ -3,6 +3,7 @@ from flask import request
 from flask_mysqldb import MySQL
 import requests
 import json
+import urllib.request # for downloading beacon csv
 
 import os
 
@@ -45,5 +46,19 @@ def get_nearby_satellites():
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
 
 
+@app.route('/update_beacons')
+def get_beacon_information():
+    try:
+        # satellite list as provided by N2Y0
+        beac_url = 'http://www.ne.jp/asahi/hamradio/je9pel/satslist.csv'
+        resp = urllib.request.urlopen(beac_url)
+        # write contents of download to data file
+        data = resp.read()
+        text = data.decode('utf-8')
+        open('./data/beacons.csv', 'w').write(text)
+        return 1
+    except Exception as e:
+        print("unexpected error:", e)
+        return "{ \"error\" : \"Could not connect to either beacon data or SQL database. Try again later.\"}"
 if __name__ == '__main__':
     app.run()
