@@ -42,7 +42,7 @@ def get_nearby_satellites():
         return str(satellites["above"])
     except Exception as e:
         print("Unexpected error:", e)
-        return "Unexpected error.  Ensure that contains lat/lng/alt parameters"
+        return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
 
 
 if __name__ == '__main__':
