@@ -48,17 +48,15 @@ def get_nearby_satellites():
 
 @app.route('/update_beacons')
 def get_beacon_information():
+    # satellite list as provided by N2Y0
+    beac_url = 'http://www.ne.jp/asahi/hamradio/je9pel/satslist.csv'
+    req = urllib.request.Request(beac_url)
     try:
-        # satellite list as provided by N2Y0
-        beac_url = 'http://www.ne.jp/asahi/hamradio/je9pel/satslist.csv'
         resp = urllib.request.urlopen(beac_url)
         # write contents of download to data file
         data = resp.read()
         text = data.decode('utf-8')
         open('./data/beacons.csv', 'w').write(text)
-        return 1
-    except Exception as e:
-        print("unexpected error:", e)
-        return "{ \"error\" : \"Could not connect to either beacon data or SQL database. Try again later.\"}"
-if __name__ == '__main__':
-    app.run()
+        return "request successful"
+    except urllib.error.URLError as e:
+        print(e.reason)
