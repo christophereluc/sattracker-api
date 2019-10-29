@@ -1,5 +1,7 @@
+# parses open csv file of beacon data and returns a list of beacon dictionary objects
 def parse_csv(csv_file):
-    Beacons = []
+    matrix = [] # initial list of lists for each line
+    Beacons = [] # final object for list of dicts
     with csv_file as beacons:
         for line in beacons:
             line = str(line)
@@ -7,7 +9,6 @@ def parse_csv(csv_file):
             strang = ""
             for letter in line:
                 if not letter:
-                    print(Beacons)
                     break
                 if letter == ";":
                     row.append(strang)
@@ -15,9 +16,20 @@ def parse_csv(csv_file):
                 elif letter == "\n":
                     if strang == "active":
                         row.append(strang)
-                        Beacons.append(row)
+                        matrix.append(row)
                     strang = ""
                     row = []
                 else:
                     strang += letter
+    for b in matrix:
+        params = {
+            '_name'     : b[0],
+            '_id'       : b[1],
+            '_uplink'   : b[2],
+            '_downlink' : b[3],
+            '_beacon'   : b[4],
+            '_mode'     : b[5],
+            '_callsign' : b[6]
+        }
+        Beacons.append(params)
     return Beacons

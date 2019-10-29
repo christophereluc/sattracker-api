@@ -2,11 +2,10 @@ from flask import Flask
 from flask import request
 from flask_mysqldb import MySQL
 import requests
-import json
 import csv # for parsing beacon data
 import urllib.request # for downloading beacon csv
-from parse_csv import parse_csv # custom function to turn beacon data into sql-friendly struct
-import pprint # prettyprint for logging SQL params
+from parse_csv import parse_csv # helper function to turn beacon data into sql-friendly struct
+from post_data import post_data # helper function to post beacon data using MySQL
 import os
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
@@ -67,57 +66,10 @@ def get_beacon_information():
     existing_data = 1
 
     # PARSE BEACON DATA
-    # each beacon in list [name, id, uplink, downlink, beacon, mode, callsign, status]
-    # TODO: just instantiate as list of dictionaries instead of this vague matrix crap
     csv_data = open('./data/beacons.csv', 'r')
     beacons = parse_csv(csv_data)
 
     # ADD DATA TO DATABASE
-    # insert statement
-    ins_str = '''
-        INSERT INTO satellites
-        (id, name, uplink, downlink, beacon, mode, callsign)
-        VALUES (
-            %(_id)s,
-            %(_name)s,
-            %(_uplink)s,
-            %(_downlink)s,
-            %(_beacon)s,
-            %(_mode)s,
-            %(_callsign)s )'''
-    # update statement
-    upd_str = '''
-        UPDATE satellites
-        SET
-        name=%(_name)s,
-        uplink=%(_uplink)s,
-        downlink=%(_downlink)s,
-        beacon=%(_beacon)s,
-        mode=%(_mode)s,
-        callsign=%(_callsign)s
-        WHERE id=%(_id)s'''
-    #open db connection
-    cur = mysql.connection.cursor()
-    for b in beacons:
-        # sanitized beacon data
-        params = {
-            '_name'     : b[0],
-            '_id'       : b[1],
-            '_uplink'   : b[2],
-            '_downlink' : b[3],
-            '_beacon'   : b[4],
-            '_mode'     : b[5],
-            '_callsign' : b[6]
-        }
-        # insert data if possible...
-        try:
-            cur.execute(ins_str, params)
-            mysql.connection.commit()
-            print("successfully inserted params " + pprint.pformat(params) + "into table 'satellites'" )
-        # ...otherwise, update entry
-        except Exception as e:
-            cur.execute(upd_str, params)
-            mysql.connection.commit()
-            print("successfully updated params " + pprint.pformat(params) + "into table 'satellites'" )
+    post_data(mysql, beacons)
 
     return "beacon data updated"
