@@ -3,7 +3,9 @@ from flask import request
 from flask_mysqldb import MySQL
 import requests
 import json
+import csv # for parsing beacon data
 import urllib.request # for downloading beacon csv
+import parse_csv # custom function to turn beacon data into sql-friendly struct
 
 import os
 
@@ -57,6 +59,15 @@ def get_beacon_information():
         data = resp.read()
         text = data.decode('utf-8')
         open('./data/beacons.csv', 'w').write(text)
-        return "request successful"
+        return "beacon request successful"
     except urllib.error.URLError as e:
         print(e.reason)
+        return 0
+    existing_data = 1
+    csv_data = open('./data/beacons.csv', 'r')
+
+    # parse data
+
+    # if data already in db, update
+
+    # else create db entry
