@@ -1,9 +1,6 @@
-import csv
-import json
-
-def parse_csv():
+def parse_csv(csv_file):
     Beacons = []
-    with open('./data/beacons.csv') as beacons:
+    with csv_file as beacons:
         for line in beacons:
             line = str(line)
             row = []
@@ -15,12 +12,12 @@ def parse_csv():
                 if letter == ";":
                     row.append(strang)
                     strang = ""
-                    pass
                 elif letter == "\n":
-                    Beacons.append(row)
+                    if strang == "active":
+                        row.append(strang)
+                        Beacons.append(row)
                     strang = ""
                     row = []
                 else:
                     strang += letter
-        for b in Beacons:
-            print(b)
+    return Beacons

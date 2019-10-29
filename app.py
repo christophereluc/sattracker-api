@@ -5,8 +5,8 @@ import requests
 import json
 import csv # for parsing beacon data
 import urllib.request # for downloading beacon csv
-import parse_csv # custom function to turn beacon data into sql-friendly struct
-
+from parse_csv import parse_csv # custom function to turn beacon data into sql-friendly struct
+import pprint # prettyprint for logging SQL params
 import os
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
@@ -50,6 +50,7 @@ def get_nearby_satellites():
 
 @app.route('/update_beacons')
 def get_beacon_information():
+    # GET BEACON DATA
     # satellite list as provided by N2Y0
     beac_url = 'http://www.ne.jp/asahi/hamradio/je9pel/satslist.csv'
     req = urllib.request.Request(beac_url)
@@ -59,15 +60,64 @@ def get_beacon_information():
         data = resp.read()
         text = data.decode('utf-8')
         open('./data/beacons.csv', 'w').write(text)
-        return "beacon request successful"
+        print( "beacon request successful")
     except urllib.error.URLError as e:
         print(e.reason)
         return 0
     existing_data = 1
+
+    # PARSE BEACON DATA
+    # each beacon in list [name, id, uplink, downlink, beacon, mode, callsign, status]
+    # TODO: just instantiate as list of dictionaries instead of this vague matrix crap
     csv_data = open('./data/beacons.csv', 'r')
+    beacons = parse_csv(csv_data)
 
-    # parse data
+    # ADD DATA TO DATABASE
+    # insert statement
+    ins_str = '''
+        INSERT INTO satellites
+        (id, name, uplink, downlink, beacon, mode, callsign)
+        VALUES (
+            %(_id)s,
+            %(_name)s,
+            %(_uplink)s,
+            %(_downlink)s,
+            %(_beacon)s,
+            %(_mode)s,
+            %(_callsign)s )'''
+    # update statement
+    upd_str = '''
+        UPDATE satellites
+        SET
+        name=%(_name)s,
+        uplink=%(_uplink)s,
+        downlink=%(_downlink)s,
+        beacon=%(_beacon)s,
+        mode=%(_mode)s,
+        callsign=%(_callsign)s
+        WHERE id=%(_id)s'''
+    #open db connection
+    cur = mysql.connection.cursor()
+    for b in beacons:
+        # sanitized beacon data
+        params = {
+            '_name'     : b[0],
+            '_id'       : b[1],
+            '_uplink'   : b[2],
+            '_downlink' : b[3],
+            '_beacon'   : b[4],
+            '_mode'     : b[5],
+            '_callsign' : b[6]
+        }
+        # insert data if possible...
+        try:
+            cur.execute(ins_str, params)
+            mysql.connection.commit()
+            print("successfully inserted params " + pprint.pformat(params) + "into table 'satellites'" )
+        # ...otherwise, update entry
+        except Exception as e:
+            cur.execute(upd_str, params)
+            mysql.connection.commit()
+            print("successfully updated params " + pprint.pformat(params) + "into table 'satellites'" )
 
-    # if data already in db, update
-
-    # else create db entry
+    return "beacon data updated"
