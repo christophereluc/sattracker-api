@@ -38,12 +38,12 @@ def get_nearby_satellites():
             BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/90/2/&apiKey=" + API_KEY).json()
 
         satellites["above"] += iss["above"]
-
-        return str(satellites["above"])
-
+        data = {"data": satellites["above"]}
+        return json.dumps(data)
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
+
 #test_URLs: http://127.0.0.1:5000/tracking?id=13002&lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/tracking') #This can be used for position
 def get_tracking_info():
@@ -59,7 +59,7 @@ def get_tracking_info():
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
-            
+
 if __name__ == '__main__':
     app.run()
 
