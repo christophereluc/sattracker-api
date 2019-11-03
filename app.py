@@ -9,7 +9,7 @@ from post_data import post_data # helper function to post beacon data using MySQ
 import os
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
-BASE_URL = "https://www.n2yo.com/rest/v1/satellite/above/"
+BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
 
 app = Flask(__name__)
 
@@ -35,17 +35,35 @@ def get_nearby_satellites():
         altitude = float(request.args.get('alt'))
 
         satellites = requests.get(
-            BASE_URL + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/90/18/&apiKey=" + API_KEY).json()
+            BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/90/18/&apiKey=" + API_KEY).json()
         iss = requests.get(
-            BASE_URL + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/90/2/&apiKey=" + API_KEY).json()
+            BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/90/2/&apiKey=" + API_KEY).json()
 
         satellites["above"] += iss["above"]
-
-        return str(satellites["above"])
+        data = {"data": satellites["above"]}
+        return json.dumps(data)
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
 
+#test_URLs: http://127.0.0.1:5000/tracking?id=13002&lat=33.865990&lng=-118.175630&&alt=0
+@app.route('/tracking') #This can be used for position
+def get_tracking_info():
+    try:
+        satid = int(request.args.get('id'))
+        latitude = float(request.args.get('lat'))
+        longitude = float(request.args.get('lng'))
+        altitude = float(request.args.get('alt'))
+
+        satellites = requests.get(
+                BASE_URL + "radiopasses/" + str(satid) + "/" + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/2/10/&apiKey=" + API_KEY).json()
+
+        data = {"data": satellites["passes"]}
+
+        return json.dumps(data)
+    except Exception as e:
+        print("Unexpected error:", e)
+        return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
 
 @app.route('/update_beacons')
 def get_beacon_information():
@@ -73,3 +91,7 @@ def get_beacon_information():
     post_data(mysql, beacons)
 
     return "beacon data updated"
+
+  if __name__ == '__main__':
+    app.run()
+
