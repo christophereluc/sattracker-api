@@ -38,8 +38,8 @@ def get_nearby_satellites():
             BASE_URL + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/90/2/&apiKey=" + API_KEY).json()
 
         satellites["above"] += iss["above"]
-
-        return str(satellites["above"])
+        data = {"data": satellites["above"]}
+        return json.dumps(data)
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
