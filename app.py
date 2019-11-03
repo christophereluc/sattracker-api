@@ -55,7 +55,10 @@ def get_tracking_info():
 
         satellites = requests.get(
                 BASE_URL + "radiopasses/" + str(satid) + "/" + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/2/10/&apiKey=" + API_KEY).json()
-        return str(satellites["passes"])
+
+        data = {"data": satellites["passes"]}
+
+        return json.dumps(data)
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
