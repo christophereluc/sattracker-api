@@ -2,8 +2,10 @@ from flask import Flask
 from flask import request
 from flask_mysqldb import MySQL
 import requests
-import json
-
+import csv # for parsing beacon data
+import urllib.request # for downloading beacon csv
+from parse_csv import parse_csv # helper function to turn beacon data into sql-friendly struct
+from post_data import post_data # helper function to post beacon data using MySQL
 import os
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
@@ -63,6 +65,33 @@ def get_tracking_info():
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
 
-if __name__ == '__main__':
+@app.route('/update_beacons')
+def get_beacon_information():
+    # GET BEACON DATA
+    # satellite list as provided by N2Y0
+    beac_url = 'http://www.ne.jp/asahi/hamradio/je9pel/satslist.csv'
+    req = urllib.request.Request(beac_url)
+    try:
+        resp = urllib.request.urlopen(beac_url)
+        # write contents of download to data file
+        data = resp.read()
+        text = data.decode('utf-8')
+        open('./data/beacons.csv', 'w').write(text)
+        print( "beacon request successful")
+    except urllib.error.URLError as e:
+        print(e.reason)
+        return 0
+    existing_data = 1
+
+    # PARSE BEACON DATA
+    csv_data = open('./data/beacons.csv', 'r')
+    beacons = parse_csv(csv_data)
+
+    # ADD DATA TO DATABASE
+    post_data(mysql, beacons)
+
+    return "beacon data updated"
+
+  if __name__ == '__main__':
     app.run()
 
