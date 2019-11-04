@@ -80,16 +80,26 @@ def get_beacon_information():
         open('./data/beacons.csv', 'w').write(text)
         print( "beacon request successful")
     except urllib.error.URLError as e:
-        print(e.reason)
-        return 0
+        print("Error opening beacon data url:", e.reason)
+        return "{ \"error\": \"Unexpected error parsing csv data\" }"
     existing_data = 1
 
     # PARSE BEACON DATA
-    csv_data = open('./data/beacons.csv', 'r')
-    beacons = parse_csv(csv_data)
+    try:
+        csv_data = open('./data/beacons.csv', 'r')
+        beacons = parse_csv(csv_data)
+    except Exception as e:
+        print("Error parsing csv data:", e)
+        return "{ \"error\": \"Unexpected error parsing csv data\" }"
 
     # ADD DATA TO DATABASE
-    post_data(mysql, beacons)
+    try:
+        post_data(mysql, beacons)
+        data = { "data": beacons }
+        return json.dumps(data)
+    except Exception as e:
+        print("Error posting csv data to database:", e)
+        return "{ \"error\": \"Unexpected error posting csv data\" }"
 
     return "beacon data updated"
 
