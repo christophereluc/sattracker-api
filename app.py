@@ -7,6 +7,7 @@ import urllib.request # for downloading beacon csv
 from parse_csv import parse_csv # helper function to turn beacon data into sql-friendly struct
 from post_data import post_data # helper function to post beacon data using MySQL
 import os
+import json
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
@@ -92,6 +93,5 @@ def get_beacon_information():
 
     return "beacon data updated"
 
-  if __name__ == '__main__':
+if __name__ == '__main__':
     app.run()
-
