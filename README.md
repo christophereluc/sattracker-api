@@ -1,9 +1,15 @@
 # sattracker-api
 Satellite Tracker API
 
-Python 3 backend API with MySQL database hosted on Heroku
+[live on heroku](http://ham-satellite.herokuapp.com/)
 
-run app with
+Python 3 backend API with MySQL database hosted on Heroku
+install dependencies:
+```
+pip3 install -r requirements.txt
+```
+
+run app:
 ```
 flask run
 ```
