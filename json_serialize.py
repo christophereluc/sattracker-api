@@ -5,4 +5,7 @@ def json_serialize(rows, cursor):
     for row in rows:
         row = dict(zip(cols, row))
         result.append(row)
-    return result
+    if len(rows) == 1:
+        return result[0]
+    else:
+        return result

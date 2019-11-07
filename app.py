@@ -23,11 +23,6 @@ app.config['MYSQL_DB'] = 'heroku_95aba217f91d579'
 
 mysql = MySQL(app)
 
-
-@app.route('/')
-def hello_world():
-    return 'Hello, World!'
-
 #Usage: http://127.0.0.1:5000/nearby?lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/nearby')
 def get_nearby_satellites():
@@ -67,9 +62,22 @@ def get_tracking_info():
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
 
+# test URL: http://127.0.0.1:5000/beacons?ids=[10032,28895]
 @app.route('/beacons')
 def print_beacon_information():
-    dump_str = "SELECT * FROM satellites;"
+    ids = request.args.get('ids')[1:-1].split(',') # get query string
+    # build up SQL query
+    for i, id in enumerate(ids):
+        # sanitize query
+        try:
+            ids[i] =  int(ids[i])
+            ids[i] = 'id=' + ids[i]
+        except Exception as e:
+            print("invalid query string")
+            return "{ \"error\": \"Invalid query format (should be /beacons?ids=[12345,67890])\" }"
+    sql_ids = ' OR '.join(ids)
+    dump_str = "SELECT * FROM satellites WHERE " + sql_ids + ";"
+    # call SQL query
     try:
         cur = mysql.connection.cursor()
         cur.execute(dump_str)
