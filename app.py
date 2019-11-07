@@ -2,15 +2,19 @@ from flask import Flask
 from flask import request
 from flask_mysqldb import MySQL
 import requests
+from flask_caching import Cache
 import csv # for parsing beacon data
 import urllib.request # for downloading beacon csv
 from parse_csv import parse_csv # helper function to turn beacon data into sql-friendly struct
 from post_data import post_data # helper function to post beacon data using MySQL
 import os
+import pylibmc
 import json
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
+
+cache = Cache()
 
 app = Flask(__name__)
 
@@ -22,6 +26,35 @@ app.config['MYSQL_DB'] = 'heroku_95aba217f91d579'
 
 mysql = MySQL(app)
 
+#set up the Caching for app
+cache_servers = os.environ.get('MEMCACHIER_SERVERS')
+if cache_servers == None:
+        # Fall back to simple in memory cache (development)
+        cache.init_app(app, config={'CACHE_TYPE': 'simple'})
+else:
+        cache_user = os.environ.get('MEMCACHIER_USERNAME') or ''
+        cache_pass = os.environ.get('MEMCACHIER_PASSWORD') or ''
+        cache.init_app(app,
+            config={'CACHE_TYPE': 'saslmemcached',
+                    'CACHE_MEMCACHED_SERVERS': cache_servers.split(','),
+                    'CACHE_MEMCACHED_USERNAME': cache_user,
+                    'CACHE_MEMCACHED_PASSWORD': cache_pass,
+                    'CACHE_OPTIONS': { 'behaviors': {
+                        # Faster IO
+                        'tcp_nodelay': True,
+                        # Keep connection alive
+                        'tcp_keepalive': True,
+                        # Timeout for set/get requests
+                        'connect_timeout': 2000, # ms
+                        'send_timeout': 750 * 1000, # us
+                        'receive_timeout': 750 * 1000, # us
+                        '_poll_timeout': 2000, # ms
+                        # Better failover
+                        'ketama': True,
+                        'remove_failed': 1,
+                        'retry_timeout': 2,
+                        'dead_timeout': 30}}})
+
 
 @app.route('/')
 def hello_world():
@@ -29,6 +62,7 @@ def hello_world():
 
 #Usage: http://127.0.0.1:5000/nearby?lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/nearby')
+@cache.memoize()
 def get_nearby_satellites():
     try:
         latitude = float(request.args.get('lat'))
@@ -49,6 +83,7 @@ def get_nearby_satellites():
 
 #test_URLs: http://127.0.0.1:5000/tracking?id=13002&lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/tracking') #This can be used for position
+@cache.memoize()
 def get_tracking_info():
     try:
         satid = int(request.args.get('id'))
