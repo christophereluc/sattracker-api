@@ -6,6 +6,7 @@ import csv # for parsing beacon data
 import urllib.request # for downloading beacon csv
 from parse_csv import parse_csv # helper function to turn beacon data into sql-friendly struct
 from post_data import post_data # helper function to post beacon data using MySQL
+from json_serialize import json_serialize # helper function to return mysql as json_serialize
 import os
 import json
 
@@ -65,6 +66,20 @@ def get_tracking_info():
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
+
+@app.route('/beacons')
+def print_beacon_information():
+    dump_str = "SELECT * FROM satellites;"
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(dump_str)
+        rows = cur.fetchall()
+        result = json_serialize(rows, cur)
+        print("successfully obtained beacon data from table 'satellites'" )
+        return json.dumps(result)
+    except Exception as e:
+        print("unable to retrieve beacon data: " + e)
+        return "{ \"error\" : \"Unexpected error fetching from database\"}"
 
 @app.route('/update_beacons')
 def get_beacon_information():
