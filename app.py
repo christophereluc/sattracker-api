@@ -7,6 +7,8 @@ import csv  # for parsing beacon data
 import urllib.request  # for downloading beacon csv
 from parse_csv import parse_csv  # helper function to turn beacon data into sql-friendly struct
 from post_data import post_data  # helper function to post beacon data using MySQL
+from post_data import post_nearby
+from post_data import delete_nearby
 from json_serialize import json_serialize  # helper function to return mysql as json_serialize
 import os
 import json
@@ -26,6 +28,7 @@ app.config['MYSQL_DB'] = 'heroku_95aba217f91d579'
 
 mysql = MySQL(app)
 
+
 # Function used to round a value based on ROUNDING_VALUE
 # i.e. truncate to 3 decimal places
 def roundPosition(value):
@@ -41,23 +44,45 @@ def get_nearby_satellites():
         longitude = roundPosition(float(request.args.get('lng')))
         altitude = float(request.args.get('alt'))
 
-        # TODO: Check cache, if present and valid, return
+        # Query database and see if we already have an item where lat/lng/alt match
+        cursor = mysql.connection.cursor()
+        statement = '''SELECT data, ttl FROM nearby WHERE alt = %s AND lat = %s AND lng = %s'''
+        items = (altitude, latitude, longitude)
 
+        cursor.execute(statement, items)
+        row = cursor.fetchone()
 
-        # TODO otherwise, hit API
-        satellites = requests.get(
-            BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
-                altitude) + "/90/18/&apiKey=" + API_KEY).json()
-        iss = requests.get(
-            BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
-                altitude) + "/90/2/&apiKey=" + API_KEY).json()
+        expired = False
 
-        satellites["above"] += iss["above"]
-        data = {"data": satellites["above"]}
+        # If we found a row, check if its expired
+        if row is not None:
+            expired = row[1] <= time()
 
-        # TODO and cache then return
+        # If no item was found or the ttl passed, we need to query api again
+        if row is None or expired:
+            satellites = requests.get(
+                BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
+                    altitude) + "/90/18/&apiKey=" + API_KEY).json()
+            iss = requests.get(
+                BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
+                    altitude) + "/90/2/&apiKey=" + API_KEY).json()
 
-        return json.dumps(data)
+            satellites["above"] += iss["above"]
+            data = {"data": satellites["above"]}
+
+            # Delete stale data
+            if expired:
+                delete_nearby(mysql, latitude, longitude, altitude)
+
+            # Now post it to the cache
+            post_nearby(mysql, latitude, longitude, altitude, json.dumps(data), (time() + TTL))
+
+            # TODO and cache then return
+            cursor.close()
+            return json.dumps(data)
+
+        cursor.close()
+        return json.dumps(row[0])
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
