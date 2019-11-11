@@ -13,7 +13,7 @@ import json
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
-
+ROUNDING_VALUE = 3
 cache = Cache()
 
 app = Flask(__name__)
@@ -54,20 +54,32 @@ else:
                         'remove_failed': 1,
                         'retry_timeout': 2,
                         'dead_timeout': 30}}})
-
-
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
 
+# Function used to round a value based on ROUNDING_VALUE
+# i.e. truncate to 3 decimal places
+def roundPosition(value):
+    return round(value, ROUNDING_VALUE)
+
 #Usage: http://127.0.0.1:5000/nearby?lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/nearby')
-@cache.memoize()
 def get_nearby_satellites():
     try:
-        latitude = float(request.args.get('lat'))
-        longitude = float(request.args.get('lng'))
-        altitude = float(request.args.get('alt'))
+        #rounding used to give small buffer
+        latitude = roundPosition(float(request.args.get('lat')))
+        longitude = roundPosition(float(request.args.get('lng')))
+        altitude = roundPosition(float(request.args.get('alt')))
+        
+        #data caching to see if values are the same
+        if cache.get('lat')== latitude and cache.get('lng')== longitude and cache.get('alt')==altitude:
+            #returns the cache if params are met. This is done to keep the api calls down. 
+            return cache.get('near_data')
+        #if they are not, set them and have them timeout after so many seconds. Will adjust accordingly
+        cache.set('lat',latitude,timeout=30)
+        cache.set('lng',longitude,timeout=30)
+        cache.set('alt',altitude,timeout=30)
 
         satellites = requests.get(
             BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(altitude) + "/90/18/&apiKey=" + API_KEY).json()
@@ -76,7 +88,10 @@ def get_nearby_satellites():
 
         satellites["above"] += iss["above"]
         data = {"data": satellites["above"]}
-        return json.dumps(data)
+        #setting cache var to api call
+        cache.set('near_data',json.dumps(data))
+        #returning the cache data
+        return cache.get('near_data')
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
