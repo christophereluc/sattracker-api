@@ -130,7 +130,8 @@ def print_beacon_information():
         rows = cur.fetchall()
         result = json_serialize(rows, cur)
         print("successfully obtained beacon data from table 'satellites'")
-        return json.dumps(result)
+        data = {"data" : result}
+        return json.dumps(data)
     except Exception as e:
         print("unable to retrieve beacon data: " + e)
         return "{ \"error\" : \"Unexpected error fetching from database\"}"
