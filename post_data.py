@@ -9,9 +9,9 @@ def post_data(mysql, beacons):
     # insert statement
     ins_str = '''
         INSERT INTO satellites
-        (id, name, uplink, downlink, beacon, mode, callsign)
+        (satid, name, uplink, downlink, beacon, mode, callsign)
         VALUES (
-            %(_id)s,
+            %(_satid)s,
             %(_name)s,
             %(_uplink)s,
             %(_downlink)s,
@@ -28,7 +28,7 @@ def post_data(mysql, beacons):
         beacon=%(_beacon)s,
         mode=%(_mode)s,
         callsign=%(_callsign)s
-        WHERE id=%(_id)s'''
+        WHERE satid=%(_satid)s'''
 
     for beacon in beacons:
         # insert data if possible...
