@@ -108,10 +108,10 @@ def get_tracking_info():
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
 
-# test URL: http://127.0.0.1:5000/beacons?ids=[35935, 28895, 37855, 42766, 43678]
+# test URL: http://127.0.0.1:5000/beacons?ids=35935,28895,37855,42766,43678
 @app.route('/beacons')
 def print_beacon_information():
-    ids = request.args.get('ids')[1:-1].split(', ')  # get query string
+    ids = request.args.get('ids').split(',')  # get query string
     # build up SQL query
     for i, id in enumerate(ids):
         # sanitize query
@@ -121,7 +121,7 @@ def print_beacon_information():
             print(satid)
         except Exception as e:
             print("invalid query string")
-            return "{ \"error\": \"Invalid query format (should be /beacons?ids=[12345,67890])\" }"
+            return "{ \"error\": \"Invalid query format (should be /beacons?ids=12345,67890)\" }"
     sql_ids = ' OR '.join(ids)
     dump_str = "SELECT * FROM satellites WHERE " + sql_ids + ";"
     # call SQL query
