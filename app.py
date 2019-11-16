@@ -111,7 +111,7 @@ def get_tracking_info():
 # test URL: http://127.0.0.1:5000/beacons?ids=[35935, 28895, 37855, 42766, 43678]
 @app.route('/beacons')
 def print_beacon_information():
-    ids = request.args.get('ids')[1:-1].split(', ')  # get query string
+    ids = request.args.get('id')[1:-1].split(', ')  # get query string
     # build up SQL query
     for i, id in enumerate(ids):
         # sanitize query
