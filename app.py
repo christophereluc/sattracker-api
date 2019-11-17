@@ -76,7 +76,6 @@ def get_nearby_satellites():
             actual_iss = None
 
             for satellite in iss["above"]:
-                print(satellite)
                 if satellite["satid"] == ISS_NORAD_ID:
                     actual_iss = satellite
                     break
