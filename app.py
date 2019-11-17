@@ -17,6 +17,7 @@ API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
 ROUNDING_VALUE = 3
 TTL = 2 * 60  # time in seconds
+ISS_NORAD_ID = 25544
 
 app = Flask(__name__)
 
@@ -63,12 +64,26 @@ def get_nearby_satellites():
             satellites = requests.get(
                 BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
                     altitude) + "/90/18/&apiKey=" + API_KEY).json()
+
+            # the following request needs to be trimmed down as the ISS category also returns satellites that
+            # are related to the ISS but DO NOT have amateur radio comm
             iss = requests.get(
                 BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
                     altitude) + "/90/2/&apiKey=" + API_KEY).json()
 
-            satellites["above"] += iss["above"]
-            data = {"data": satellites["above"]}
+            # There can be multiple entries in the ISS call for the actual ISS, but only one is needed bc
+            # they all have the same location values
+            actual_iss = None
+
+            for satellite in iss["above"]:
+                if satellite["satid"] == ISS_NORAD_ID:
+                    actual_iss = satellite
+                    break
+
+            data = {"data": {
+                "satellites": satellites["above"],
+                "iss": actual_iss
+            }}
 
             # Delete stale data
             if expired:
