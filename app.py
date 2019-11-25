@@ -32,17 +32,26 @@ mysql = MySQL(app)
 
 # Function used to round a value based on ROUNDING_VALUE
 # i.e. truncate to 3 decimal places
-def roundPosition(value):
+def round_position(value):
     return round(value, ROUNDING_VALUE)
 
+# Returns all active satellite ids from the database
+def get_all_active_satellites():
+    dump_str = "SELECT satid FROM satellites;"
+    cur = mysql.connection.cursor()
+    cur.execute(dump_str)
+    rows = cur.fetchall()
+    results = [row[0] for row in rows]
+    cur.close()
+    return results
 
 # Usage: http://127.0.0.1:5000/nearby?lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/nearby')
 def get_nearby_satellites():
     try:
         # truncate lat/long for easier caching for now
-        latitude = roundPosition(float(request.args.get('lat')))
-        longitude = roundPosition(float(request.args.get('lng')))
+        latitude = round_position(float(request.args.get('lat')))
+        longitude = round_position(float(request.args.get('lng')))
         altitude = float(request.args.get('alt'))
 
         # Query database and see if we already have an item where lat/lng/alt match
@@ -61,9 +70,16 @@ def get_nearby_satellites():
 
         # If no item was found or the ttl passed, we need to query api again
         if row is None or expired:
+
+            all_active_satellites = get_all_active_satellites()
             satellites = requests.get(
                 BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
                     altitude) + "/90/18/&apiKey=" + API_KEY).json()
+
+            filtered_sats = []
+            for satellite in satellites["above"]:
+                if int(satellite["satid"]) in all_active_satellites:
+                    filtered_sats.append(satellite)
 
             # the following request needs to be trimmed down as the ISS category also returns satellites that
             # are related to the ISS but DO NOT have amateur radio comm
@@ -81,7 +97,7 @@ def get_nearby_satellites():
                     break
 
             data = {"data": {
-                "satellites": satellites["above"],
+                "satellites": filtered_sats,
                 "iss": actual_iss
             }}
 
@@ -92,7 +108,6 @@ def get_nearby_satellites():
             # Now post it to the cache
             post_nearby(mysql, latitude, longitude, altitude, json.dumps(data), (time() + TTL))
 
-            # TODO and cache then return
             cursor.close()
             return json.dumps(data)
 
