@@ -90,8 +90,10 @@ def get_nearby_satellites():
             beacons = r.json()['data']
             for satellite in satellites["above"]:
                 beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
-                satellite["beacon"] = beacon
-            # import pdb; pdb.set_trace()
+                satellite["uplink"] = str(beacon["uplink"])
+                satellite["downlink"] = str(beacon["downlink"])
+                satellite["beacon"] = str(beacon["beacon"])
+                satellite["mode"] = str(beacon["mode"])
 
             data = {"data": {
                 "satellites": satellites["above"],
