@@ -5,6 +5,7 @@ from time import time
 import requests
 import csv  # for parsing beacon data
 import urllib.request  # for downloading beacon csv
+from urllib.error import HTTPError
 from parse_csv import parse_csv  # helper function to turn beacon data into sql-friendly struct
 from post_data import post_data  # helper function to post beacon data using MySQL
 from post_data import post_nearby
@@ -15,6 +16,7 @@ import json
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
+BEACONS_URL = "https://ham-satellite.herokuapp.com/beacons?id="
 ROUNDING_VALUE = 3
 TTL = 2 * 60  # time in seconds
 ISS_NORAD_ID = 25544
@@ -96,6 +98,19 @@ def get_nearby_satellites():
                     actual_iss = satellite
                     break
 
+            # add beacon data to return data
+            satids = [str(sat["satid"]) for sat in satellites["above"]]
+            satids = ",".join(satids)
+            beacons_url = BEACONS_URL + satids
+            r = requests.get(url = beacons_url)
+            beacons = r.json()['data']
+            for satellite in satellites["above"]:
+                beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
+                satellite["uplink"] = str(beacon["uplink"])
+                satellite["downlink"] = str(beacon["downlink"])
+                satellite["beacon"] = str(beacon["beacon"])
+                satellite["mode"] = str(beacon["mode"])
+
             data = {"data": {
                 "satellites": filtered_sats,
                 "iss": actual_iss
@@ -141,19 +156,21 @@ def get_tracking_info():
 # test URL: http://127.0.0.1:5000/beacons?id=35935,28895,37855,42766,43678
 @app.route('/beacons')
 def print_beacon_information():
-    ids = request.args.get('id').split(',')  # get query string
+    satids = request.args.get('id').split(',')  # get query string
+    print("BEACONS CALL SATIDS", satids)
     # build up SQL query
-    for i, id in enumerate(ids):
+    for i, id in enumerate(satids):
         # sanitize query
         try:
-            satid = ids[i].strip()
-            ids[i] = 'satid=' + satid
+            satid = satids[i].strip()
+            satids[i] = 'satid=' + satid
             print(satid)
         except Exception as e:
             print("invalid query string")
             return "{ \"error\": \"Invalid query format (should be /beacons?ids=12345,67890)\" }"
-    sql_ids = ' OR '.join(ids)
+    sql_ids = ' OR '.join(satids)
     dump_str = "SELECT * FROM satellites WHERE " + sql_ids + ";"
+    print(dump_str)
     # call SQL query
     try:
         cur = mysql.connection.cursor()
@@ -166,7 +183,6 @@ def print_beacon_information():
     except Exception as e:
         print("unable to retrieve beacon data: " + e)
         return "{ \"error\" : \"Unexpected error fetching from database\"}"
-
 
 @app.route('/update_beacons')
 def get_beacon_information():

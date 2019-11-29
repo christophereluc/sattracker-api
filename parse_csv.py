@@ -14,9 +14,8 @@ def parse_csv(csv_file):
                     row.append(strang)
                     strang = ""
                 elif letter == "\n":
-                    if strang == "active":
-                        row.append(strang)
-                        matrix.append(row)
+                    row.append(strang)
+                    matrix.append(row)
                     strang = ""
                     row = []
                 else:
