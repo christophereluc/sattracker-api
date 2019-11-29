@@ -37,6 +37,7 @@ mysql = MySQL(app)
 def round_position(value):
     return round(value, ROUNDING_VALUE)
 
+
 # Returns all active satellite ids from the database
 def get_all_active_satellites():
     dump_str = "SELECT satid FROM satellites;"
@@ -46,6 +47,7 @@ def get_all_active_satellites():
     results = [row[0] for row in rows]
     cur.close()
     return results
+
 
 # Usage: http://127.0.0.1:5000/nearby?lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/nearby')
@@ -102,14 +104,29 @@ def get_nearby_satellites():
             satids = [str(sat["satid"]) for sat in satellites["above"]]
             satids = ",".join(satids)
             beacons_url = BEACONS_URL + satids
-            r = requests.get(url = beacons_url)
+            r = requests.get(url=beacons_url)
             beacons = r.json()['data']
+
             for satellite in satellites["above"]:
                 beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
+                if beacon is None:
+                    continue
                 satellite["uplink"] = str(beacon["uplink"])
                 satellite["downlink"] = str(beacon["downlink"])
                 satellite["beacon"] = str(beacon["beacon"])
                 satellite["mode"] = str(beacon["mode"])
+
+            # Now do the same for the ISS if present
+            if actual_iss is not None:
+                beacons_url = BEACONS_URL + actual_iss["satid"]
+                r = requests.get(url=beacons_url)
+                beacons = r.json()['data']
+                beacon = next((x for x in beacons if x["satid"] == actual_iss["satid"]), None)
+                if beacon is not None:
+                    actual_iss["uplink"] = str(beacon["uplink"])
+                    actual_iss["downlink"] = str(beacon["downlink"])
+                    actual_iss["beacon"] = str(beacon["beacon"])
+                    actual_iss["mode"] = str(beacon["mode"])
 
             data = {"data": {
                 "satellites": filtered_sats,
@@ -153,6 +170,7 @@ def get_tracking_info():
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains id/lat/lng/alt parameters\"}"
 
+
 # test URL: http://127.0.0.1:5000/beacons?id=35935,28895,37855,42766,43678
 @app.route('/beacons')
 def print_beacon_information():
@@ -178,11 +196,12 @@ def print_beacon_information():
         rows = cur.fetchall()
         result = json_serialize(rows, cur)
         print("successfully obtained beacon data from table 'satellites'")
-        data = {"data" : result}
+        data = {"data": result}
         return json.dumps(data)
     except Exception as e:
         print("unable to retrieve beacon data: " + e)
         return "{ \"error\" : \"Unexpected error fetching from database\"}"
+
 
 @app.route('/update_beacons')
 def get_beacon_information():
