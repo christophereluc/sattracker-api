@@ -123,11 +123,10 @@ def get_nearby_satellites():
 
             # Now do the same for the ISS if present
             if actual_iss is not None:
-                beacons_url = BEACONS_URL + actual_iss["satid"]
+                beacons_url = BEACONS_URL + str(actual_iss["satid"])
                 r = requests.get(url=beacons_url)
-                beacons = r.json()['data']
-                beacon = next((x for x in beacons if x["satid"] == actual_iss["satid"]), None)
-                if beacon is not None:
+                beacon = r.json()['data']
+                if beacon is not None and beacon["satid"] == actual_iss["satid"]:
                     append_sat_keys(actual_iss, beacon)
 
             data = {"data": {
