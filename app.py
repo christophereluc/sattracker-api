@@ -49,12 +49,79 @@ def get_all_active_satellites():
     return results
 
 
+def get_last_cached_row(altitude, latitude, longitude):
+    # Query database and see if we already have an item where lat/lng/alt match
+    cursor = mysql.connection.cursor()
+    statement = '''SELECT data, ttl FROM nearby WHERE alt = %s AND lat = %s AND lng = %s'''
+    items = (altitude, latitude, longitude)
+
+    cursor.execute(statement, items)
+    row = cursor.fetchone()
+    cursor.close()
+    return row
+
+
 # Appends beacon fields to satellite object
 def append_sat_keys(satellite, beacon):
     satellite["uplink"] = str(beacon["uplink"])
     satellite["downlink"] = str(beacon["downlink"])
     satellite["beacon"] = str(beacon["beacon"])
     satellite["mode"] = str(beacon["mode"])
+
+
+# Retrieves the nearby ISS data and appends beacon data if present
+def get_iss(altitude, latitude, longitude):
+    # the following request needs to be trimmed down as the ISS category also returns satellites that
+    # are related to the ISS but DO NOT have amateur radio comm
+    iss = requests.get(
+        BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
+            altitude) + "/90/2/&apiKey=" + API_KEY).json()
+
+    # There can be multiple entries in the ISS call for the actual ISS, but only one is needed bc
+    # they all have the same location values
+    actual_iss = None
+
+    for satellite in iss["above"]:
+        if satellite["satid"] == ISS_NORAD_ID:
+            actual_iss = satellite
+
+            # append beacon data
+            beacons_url = BEACONS_URL + str(actual_iss["satid"])
+            r = requests.get(url=beacons_url)
+            beacon = r.json()['data']
+            if beacon is not None and beacon["satid"] == actual_iss["satid"]:
+                append_sat_keys(actual_iss, beacon)
+            break
+
+    return actual_iss
+
+
+# Retrieves all nearby amateur radio satellites and appends beacon data
+def get_all_nearby_satellites(altitude, latitude, longitude):
+    all_active_satellites = get_all_active_satellites()
+    satellites = requests.get(
+        BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
+            altitude) + "/90/18/&apiKey=" + API_KEY).json()
+
+    filtered_sats = []
+    for satellite in satellites["above"]:
+        if int(satellite["satid"]) in all_active_satellites:
+            filtered_sats.append(satellite)
+
+    # add beacon data to return data
+    satids = [str(sat["satid"]) for sat in satellites["above"]]
+    satids = ",".join(satids)
+    beacons_url = BEACONS_URL + satids
+    r = requests.get(url=beacons_url)
+    beacons = r.json()['data']
+
+    for satellite in satellites["above"]:
+        beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
+        if beacon is None:
+            continue
+        append_sat_keys(satellite, beacon)
+
+    return filtered_sats
 
 
 # Usage: http://127.0.0.1:5000/nearby?lat=33.865990&lng=-118.175630&&alt=0
@@ -65,90 +132,44 @@ def get_nearby_satellites():
         latitude = round_position(float(request.args.get('lat')))
         longitude = round_position(float(request.args.get('lng')))
         altitude = float(request.args.get('alt'))
+    except Exception as e:
+        print("Unexpected error:", e)
+        return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
 
-        # Query database and see if we already have an item where lat/lng/alt match
-        cursor = mysql.connection.cursor()
-        statement = '''SELECT data, ttl FROM nearby WHERE alt = %s AND lat = %s AND lng = %s'''
-        items = (altitude, latitude, longitude)
-
-        cursor.execute(statement, items)
-        row = cursor.fetchone()
-
+    try:
+        row = get_last_cached_row(altitude, latitude, longitude)
         expired = False
 
         # If we found a row, check if its expired
         if row is not None:
             expired = row[1] <= time()
 
+        return_data = None
+
         # If no item was found or the ttl passed, we need to query api again
         if row is None or expired:
 
-            all_active_satellites = get_all_active_satellites()
-            satellites = requests.get(
-                BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
-                    altitude) + "/90/18/&apiKey=" + API_KEY).json()
-
-            filtered_sats = []
-            for satellite in satellites["above"]:
-                if int(satellite["satid"]) in all_active_satellites:
-                    filtered_sats.append(satellite)
-
-            # the following request needs to be trimmed down as the ISS category also returns satellites that
-            # are related to the ISS but DO NOT have amateur radio comm
-            iss = requests.get(
-                BASE_URL + "above/" + str(latitude) + "/" + str(longitude) + "/" + str(
-                    altitude) + "/90/2/&apiKey=" + API_KEY).json()
-
-            # There can be multiple entries in the ISS call for the actual ISS, but only one is needed bc
-            # they all have the same location values
-            actual_iss = None
-
-            for satellite in iss["above"]:
-                if satellite["satid"] == ISS_NORAD_ID:
-                    actual_iss = satellite
-                    break
-
-            # add beacon data to return data
-            satids = [str(sat["satid"]) for sat in satellites["above"]]
-            satids = ",".join(satids)
-            beacons_url = BEACONS_URL + satids
-            r = requests.get(url=beacons_url)
-            beacons = r.json()['data']
-
-            for satellite in satellites["above"]:
-                beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
-                if beacon is None:
-                    continue
-                append_sat_keys(satellite, beacon)
-
-            # Now do the same for the ISS if present
-            if actual_iss is not None:
-                beacons_url = BEACONS_URL + str(actual_iss["satid"])
-                r = requests.get(url=beacons_url)
-                beacon = r.json()['data']
-                if beacon is not None and beacon["satid"] == actual_iss["satid"]:
-                    append_sat_keys(actual_iss, beacon)
-
             data = {"data": {
-                "satellites": filtered_sats,
-                "iss": actual_iss
+                "satellites": get_all_nearby_satellites(altitude, latitude, longitude),
+                "iss": get_iss(altitude, latitude, longitude)
             }}
 
             # Delete stale data
             if expired:
                 delete_nearby(mysql, latitude, longitude, altitude)
 
+            return_data = json.dumps(data)
+
             # Now post it to the cache
-            post_nearby(mysql, latitude, longitude, altitude, json.dumps(data), (time() + TTL))
+            post_nearby(mysql, latitude, longitude, altitude, return_data, (time() + TTL))
 
-            cursor.close()
-            return json.dumps(data)
+        else:
+            return_data = row[0]
 
-        cursor.close()
-        return json.loads(row[0])
+        return app.response_class(response=return_data, status=200, mimetype='application/json')
     except Exception as e:
         print("Unexpected error:", e)
-        return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
+        return "{ \"error\" : " + str(e) + "}"
 
 
 # test_URLs: http://127.0.0.1:5000/tracking?id=13002&lat=33.865990&lng=-118.175630&&alt=0
