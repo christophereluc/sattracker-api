@@ -49,6 +49,14 @@ def get_all_active_satellites():
     return results
 
 
+# Appends beacon fields to satellite object
+def append_sat_keys(satellite, beacon):
+    satellite["uplink"] = str(beacon["uplink"])
+    satellite["downlink"] = str(beacon["downlink"])
+    satellite["beacon"] = str(beacon["beacon"])
+    satellite["mode"] = str(beacon["mode"])
+
+
 # Usage: http://127.0.0.1:5000/nearby?lat=33.865990&lng=-118.175630&&alt=0
 @app.route('/nearby')
 def get_nearby_satellites():
@@ -111,10 +119,7 @@ def get_nearby_satellites():
                 beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
                 if beacon is None:
                     continue
-                satellite["uplink"] = str(beacon["uplink"])
-                satellite["downlink"] = str(beacon["downlink"])
-                satellite["beacon"] = str(beacon["beacon"])
-                satellite["mode"] = str(beacon["mode"])
+                append_sat_keys(satellite, beacon)
 
             # Now do the same for the ISS if present
             if actual_iss is not None:
@@ -123,10 +128,7 @@ def get_nearby_satellites():
                 beacons = r.json()['data']
                 beacon = next((x for x in beacons if x["satid"] == actual_iss["satid"]), None)
                 if beacon is not None:
-                    actual_iss["uplink"] = str(beacon["uplink"])
-                    actual_iss["downlink"] = str(beacon["downlink"])
-                    actual_iss["beacon"] = str(beacon["beacon"])
-                    actual_iss["mode"] = str(beacon["mode"])
+                    append_sat_keys(actual_iss, beacon)
 
             data = {"data": {
                 "satellites": filtered_sats,
@@ -144,7 +146,7 @@ def get_nearby_satellites():
             return json.dumps(data)
 
         cursor.close()
-        return json.dumps(row[0])
+        return json.loads(row[0])
     except Exception as e:
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
