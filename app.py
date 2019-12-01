@@ -17,8 +17,8 @@ import json
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
 BEACONS_URL = "https://ham-satellite.herokuapp.com/beacons?id="
-ROUNDING_VALUE = 3
-TTL = 2 * 60  # time in seconds
+ROUNDING_VALUE = 4
+TTL = 1 * 60  # time in seconds
 ISS_NORAD_ID = 25544
 
 app = Flask(__name__)
