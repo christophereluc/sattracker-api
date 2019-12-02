@@ -40,7 +40,7 @@ def round_position(value):
 
 # Returns all active satellite ids from the database
 def get_all_active_satellites():
-    dump_str = "SELECT satid FROM satellites;"
+    dump_str = "SELECT satid FROM satellites WHERE active = 1;"
     cur = mysql.connection.cursor()
     cur.execute(dump_str)
     rows = cur.fetchall()
@@ -95,6 +95,9 @@ def get_iss(altitude, latitude, longitude):
 
     return actual_iss
 
+@app.route('/active')
+def get_sats():
+    return json.dumps(get_all_active_satellites())
 
 # Retrieves all nearby amateur radio satellites and appends beacon data
 def get_all_nearby_satellites(altitude, latitude, longitude):

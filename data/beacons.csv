@@ -1,4 +1,4 @@
-1KUNS-PF;43466;;437.300 ;;1k2/2k4/4k8/9k6* GMSK;;active
+1KUNS-PF;43466;;437.300 ;;1k2*/2k4/4k8/9k6 GMSK;;active
 3CAT-1;43781;;437.250 ;437.250 ;9600bps BPSK CW;;inactive
 3CAT-2;41732;;145.970/2401.000;;9600bps BPSK/100kbps GMSK;;inactive
 4M-LXS;;;145.980 ;;WSJT-JT65B;LX0OHB;deep space
@@ -262,11 +262,11 @@ Eagle-1 (BeakerSat-1);39437;;437.465 ;;9600bps GFSK;;inactive
 Eagle-2 ($50SAT MO-76);39436;;437.505 ;437.505 ;9600bps GFSK RTTY CW;;re-entered
 EagleSat-1;43018;;437.645 ;;1200bps AFSK;;inactive
 Eaglet-1;43790;;435.200/435.800;;1200bps;;non-amateur
-EcAMSat;43019;;437.095 ;;1200bps AFSK;KE6QLL;inactive
+EcAMSat;43019;;437.095 ;;1200bps AFSK;KE6QLL;active
 Ecuador-UTE;;;437.050 ;;1k2 AFSK SSTV CW;;unknown
 EDSN 1-8;;;2401.200-2431.200;437.100 ;1200bps AFSK;;failure
 EduSat-1 (BIRD-N);42824;;437.375 ;437.372 ;1k2AFSK 9k6GMSK CW;JG6YJR;re-entered
-Egycubesat-1 (NARSScube-1);;;;437.974 ;CW;;active
+Egycubesat-1 (NARSScube-1);;;;437.970 ;CW;;active
 ELFIN-A;43617;;437.450 ;;9k6/19k2 GFSK;WJ2XNX;active
 ELFIN-B;43616;;437.475 ;;9k6/19k2 GFSK;WJ2XOX;active
 EnduroSat One;43551;;437.050 ;437.050 ;9600bps GMSK Music;LZ0AMS;inactive
@@ -492,7 +492,7 @@ NanoSail-D2;37361;;;437.270 ;1200bps AFSK;KE7EGC;re-entered
 NanoSat-6 (Oculus-ASR);44346;;437.200 ;;9600bps GMSK;;unknown
 Nanosat-7 (Prox-1);44339;437.345 ;2300.000 ;;;;unknown
 NanosatC-Br1 (NCBR-1);40024;435.xxx;145.865 ;145.865 ;1200bps BPSK CW;NCBR1;active
-NARSScube-1 (Egycubesat-1);44791;;;437.974 ;CW;;active
+NARSScube-1 (Egycubesat-1);44792;;;437.970 ;CW;;active
 NARSScube-2;44718;;;437.974 ;CW;;unknown
 Nayif-1 (FUNcube-5 EO-88);42017;435.015-435.045;145.990-145.960;145.940 ;1200bps BPSK SSB;;active
 NCUBE-1;;;437.305 ;;9600bps GMSK;LA1CUB;failure
@@ -531,7 +531,7 @@ NPS-SCAT;39389;;2401.200-2447.600;437.525 ;1200bps AFSK CW;K6NPS;inactive
 nSight-1 (AZ02);42726;;435.900/2405.000;;9600bps GMSK;ON02AZ;active
 NSLSat-1;;;~401/~2200;;;;unknown
 NUDT-PhoneSat (CAS-3I);40900;;437.300;;9k6 GFSK;BJ1SJ;inactive
-NUDTSat (CN06);42787;;436.270 ;;9600bps BPSK;BG7AKF;active
+NUDTSat (CN06);42787;;436.270 ;;9600bps BPSK;BG7AKF;inactive
 NuSat-1 (LO-87);41557;435.935-435.965;145.965-145.935;145.900 ;SSB CW;;inactive
 NuSat-1 (LO-87);41557;;436.445 ;;9k6/19k2/40k0* GFSK;;active
 NuSat-2;41558;435.935-435.965;145.965-145.935;145.900 ;SSB CW;;unknown
@@ -670,7 +670,7 @@ RS-45;;;;;;;Unknown
 RS-46 (COSMOS-2491);39497;;;435.465/435.565;CW;;Non-Operational
 RS-47 (COSMOS-2499);39765;;;435.465/435.565;CW;;Non-Operational
 RS-48 (AIST-2D);41465;;;435.315 ;CW;;Operational
-RWASAT-1;;;;;;;unknown
+RWASAT-1;44790;;;;;;unknown
 SACRED;;;436.870 ;;1200bps AFSK;WA4CEW;failure
 SAFIR-S;25399;;;2401.900 ;9600bps FSK;DP1AIS;inactive
 SamSat-218D;41466;435.590-435.610;145.850-145.890;145.870 ;TRXSSAU CW;SAMSAT-218D;inactive
@@ -767,7 +767,7 @@ Tanusha-SWSU-3 (RS-8S);43597;;437.050 ;;1200bps AFSK Voice;RS8S;inactive
 Tanusha-SWSU-4 (RS-9S);43598;;437.050 ;;1200bps AFSK Voice;RS9S;inactive
 Taurus-1;44530;145.820 ;436.760 ;435.840 ;9600bps BPSK FM;;active
 TBEx-A;44356;;437.485 ;;9600bps GMSK;KF6RFX;active
-TBEx-B;44359;;437.535 ;;9600bps GMSK;KF6RFX;active
+TBEx-B;44359;;437.485 ;;9600bps GMSK;KF6RFX;active
 TechEdSat-1;38854;;437.465 ;437.465 ;1200bps FM CW;KJ6TVO;re-entered
 TechEdSat-3;39415;;437.465 ;437.465 ;1200bps AFSK CW;;inactive
 TechEdSat-4;40455;;;;;;unknown
