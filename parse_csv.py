@@ -5,21 +5,11 @@ def parse_csv(csv_file):
     with csv_file as beacons:
         for line in beacons:
             line = str(line)
-            row = []
+            # row = []
             strang = ""
-            for letter in line:
-                if not letter:
-                    break
-                if letter == ";":
-                    row.append(strang)
-                    strang = ""
-                elif letter == "\n":
-                    row.append(strang)
-                    matrix.append(row)
-                    strang = ""
-                    row = []
-                else:
-                    strang += letter
+            row = line.split(";")
+            matrix.append(row)
+
     for b in matrix:
         active = 1 if b[7] == "active" else 0
         params = {
