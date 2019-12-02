@@ -113,13 +113,13 @@ def get_all_nearby_satellites(altitude, latitude, longitude):
             filtered_sats.append(satellite)
 
     # add beacon data to return data
-    satids = [str(sat["satid"]) for sat in satellites["above"]]
+    satids = [str(sat["satid"]) for sat in filtered_sats]
     satids = ",".join(satids)
     beacons_url = BEACONS_URL + satids
     r = requests.get(url=beacons_url)
     beacons = r.json()['data']
 
-    for satellite in satellites["above"]:
+    for satellite in filtered_sats:
         beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
         if beacon is None:
             continue
