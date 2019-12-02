@@ -13,6 +13,7 @@ from post_data import delete_nearby
 from json_serialize import json_serialize  # helper function to return mysql as json_serialize
 import os
 import json
+from apscheduler.schedulers.background import BackgroundScheduler
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
@@ -20,6 +21,7 @@ BEACONS_URL = "https://ham-satellite.herokuapp.com/beacons?id="
 ROUNDING_VALUE = 4
 TTL = 1 * 60  # time in seconds
 ISS_NORAD_ID = 25544
+SECONDS_IN_DAY = 86400
 
 app = Flask(__name__)
 
@@ -30,7 +32,6 @@ app.config['MYSQL_PASSWORD'] = os.environ["HAM_DATABASE_PASSWORD"]
 app.config['MYSQL_DB'] = 'heroku_95aba217f91d579'
 
 mysql = MySQL(app)
-
 
 # Function used to round a value based on ROUNDING_VALUE
 # i.e. truncate to 3 decimal places
@@ -93,7 +94,11 @@ def get_iss(altitude, latitude, longitude):
                 append_sat_keys(actual_iss, beacon)
             break
 
-    return actual_iss
+    return actual_iss or ""
+
+@app.route("/active")
+def active():
+    return json.dumps(get_all_active_satellites())
 
 # Retrieves all nearby amateur radio satellites and appends beacon data
 def get_all_nearby_satellites(altitude, latitude, longitude):
@@ -135,6 +140,8 @@ def get_nearby_satellites():
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
 
+    return_data = None
+
     try:
         row = get_last_cached_row(altitude, latitude, longitude)
         expired = False
@@ -142,8 +149,6 @@ def get_nearby_satellites():
         # If we found a row, check if its expired
         if row is not None:
             expired = row[1] <= time()
-
-        return_data = None
 
         # If no item was found or the ttl passed, we need to query api again
         if row is None or expired:
@@ -264,6 +269,10 @@ def get_beacon_information():
     beacons = parse_beacons_csv()
     return post_beacons(mysql, beacons)
 
+# schedule update_beacons to run once daily
+sched = BackgroundScheduler(daemon = True)
+sched.add_job(get_beacon_information, 'cron', hour = 0)
+sched.start()
 
 if __name__ == '__main__':
     app.run()
