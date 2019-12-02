@@ -40,9 +40,12 @@ def post_data(mysql, beacons):
             print("successfully inserted params " + pprint.pformat(beacon) + "into table 'satellites'")
         # ...otherwise, update
         except Exception as e:
-            cur.execute(upd_str, beacon)
-            mysql.connection.commit()
-            print("successfully updated params " + pprint.pformat(beacon) + "into table 'satellites'")
+            try:
+                cur.execute(upd_str, beacon)
+                mysql.connection.commit()
+                print("successfully updated params " + pprint.pformat(beacon) + "into table 'satellites'")
+            except Exception as e2:
+                print("ERROR UPDATING: ", e2, upd_str)
     return 1
 
 

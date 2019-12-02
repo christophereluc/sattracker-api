@@ -9,9 +9,10 @@ def parse_csv(csv_file):
             strang = ""
             row = line.split(";")
             matrix.append(row)
+            print(row)
 
     for b in matrix:
-        active = 1 if b[7] == "active" else 0
+        active = 1 if b[7] == "active\n" else 0
         params = {
             '_name'     : b[0],
             '_satid'    : b[1],

@@ -95,10 +95,6 @@ def get_iss(altitude, latitude, longitude):
 
     return actual_iss
 
-@app.route('/active')
-def get_sats():
-    return json.dumps(get_all_active_satellites())
-
 # Retrieves all nearby amateur radio satellites and appends beacon data
 def get_all_nearby_satellites(altitude, latitude, longitude):
     all_active_satellites = get_all_active_satellites()
@@ -227,11 +223,9 @@ def print_beacon_information():
         print("unable to retrieve beacon data: " + e)
         return "{ \"error\" : \"Unexpected error fetching from database\"}"
 
-
-@app.route('/update_beacons')
-def get_beacon_information():
-    # GET BEACON DATA
-    # satellite list as provided by N2Y0
+# GET BEACON DATA
+# satellite list as provided by N2Y0
+def get_csv():
     beac_url = 'http://www.ne.jp/asahi/hamradio/je9pel/satslist.csv'
     req = urllib.request.Request(beac_url)
     try:
@@ -244,17 +238,18 @@ def get_beacon_information():
     except urllib.error.URLError as e:
         print("Error opening beacon data url:", e.reason)
         return "{ \"error\": \"Unexpected error parsing csv data\" }"
-    existing_data = 1
 
-    # PARSE BEACON DATA
+# PARSE BEACON DATA
+def parse_beacons_csv():
     try:
         csv_data = open('./data/beacons.csv', 'r')
-        beacons = parse_csv(csv_data)
+        return parse_csv(csv_data)
     except Exception as e:
         print("Error parsing csv data:", e)
         return "{ \"error\": \"Unexpected error parsing csv data\" }"
 
-    # ADD DATA TO DATABASE
+# ADD DATA TO DATABASE
+def post_beacons(mysql, beacons):
     try:
         post_data(mysql, beacons)
         data = {"data": beacons}
@@ -263,7 +258,11 @@ def get_beacon_information():
         print("Error posting csv data to database:", e)
         return "{ \"error\": \"Unexpected error posting csv data\" }"
 
-    return "beacon data updated"
+@app.route('/update_beacons')
+def get_beacon_information():
+    get_csv()
+    beacons = parse_beacons_csv()
+    return post_beacons(mysql, beacons)
 
 
 if __name__ == '__main__':
