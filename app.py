@@ -94,7 +94,7 @@ def get_iss(altitude, latitude, longitude):
                 append_sat_keys(actual_iss, beacon)
             break
 
-    return actual_iss or ""
+    return actual_iss
 
 @app.route("/active")
 def active():
