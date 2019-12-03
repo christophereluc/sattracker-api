@@ -9,7 +9,7 @@ def post_data(mysql, beacons):
     # insert statement
     ins_str = '''
         INSERT INTO satellites
-        (satid, name, uplink, downlink, beacon, mode, callsign)
+        (satid, name, uplink, downlink, beacon, mode, callsign, active)
         VALUES (
             %(_satid)s,
             %(_name)s,
@@ -17,7 +17,8 @@ def post_data(mysql, beacons):
             %(_downlink)s,
             %(_beacon)s,
             %(_mode)s,
-            %(_callsign)s )'''
+            %(_callsign)s ),
+            %(_active)s'''
     # update statement
     upd_str = '''
         UPDATE satellites
@@ -27,7 +28,8 @@ def post_data(mysql, beacons):
         downlink=%(_downlink)s,
         beacon=%(_beacon)s,
         mode=%(_mode)s,
-        callsign=%(_callsign)s
+        callsign=%(_callsign)s,
+        active=%(_active)s
         WHERE satid=%(_satid)s'''
 
     for beacon in beacons:
@@ -38,9 +40,12 @@ def post_data(mysql, beacons):
             print("successfully inserted params " + pprint.pformat(beacon) + "into table 'satellites'")
         # ...otherwise, update
         except Exception as e:
-            cur.execute(upd_str, beacon)
-            mysql.connection.commit()
-            print("successfully updated params " + pprint.pformat(beacon) + "into table 'satellites'")
+            try:
+                cur.execute(upd_str, beacon)
+                mysql.connection.commit()
+                print("successfully updated params " + pprint.pformat(beacon) + "into table 'satellites'")
+            except Exception as e2:
+                print("ERROR UPDATING: ", e2, upd_str)
     return 1
 
 

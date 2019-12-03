@@ -13,6 +13,7 @@ from post_data import delete_nearby
 from json_serialize import json_serialize  # helper function to return mysql as json_serialize
 import os
 import json
+from apscheduler.schedulers.background import BackgroundScheduler
 
 API_KEY = 'JWH8ZQ-G7HTPQ-KRBG9Q-47TP'
 BASE_URL = "https://www.n2yo.com/rest/v1/satellite/"
@@ -20,6 +21,7 @@ BEACONS_URL = "https://ham-satellite.herokuapp.com/beacons?id="
 ROUNDING_VALUE = 4
 TTL = 1 * 60  # time in seconds
 ISS_NORAD_ID = 25544
+SECONDS_IN_DAY = 86400
 
 app = Flask(__name__)
 
@@ -31,7 +33,6 @@ app.config['MYSQL_DB'] = 'heroku_95aba217f91d579'
 
 mysql = MySQL(app)
 
-
 # Function used to round a value based on ROUNDING_VALUE
 # i.e. truncate to 3 decimal places
 def round_position(value):
@@ -40,7 +41,7 @@ def round_position(value):
 
 # Returns all active satellite ids from the database
 def get_all_active_satellites():
-    dump_str = "SELECT satid FROM satellites;"
+    dump_str = "SELECT satid FROM satellites WHERE active = 1;"
     cur = mysql.connection.cursor()
     cur.execute(dump_str)
     rows = cur.fetchall()
@@ -95,6 +96,9 @@ def get_iss(altitude, latitude, longitude):
 
     return actual_iss
 
+@app.route("/active")
+def active():
+    return json.dumps(get_all_active_satellites())
 
 # Retrieves all nearby amateur radio satellites and appends beacon data
 def get_all_nearby_satellites(altitude, latitude, longitude):
@@ -109,13 +113,13 @@ def get_all_nearby_satellites(altitude, latitude, longitude):
             filtered_sats.append(satellite)
 
     # add beacon data to return data
-    satids = [str(sat["satid"]) for sat in satellites["above"]]
+    satids = [str(sat["satid"]) for sat in filtered_sats]
     satids = ",".join(satids)
     beacons_url = BEACONS_URL + satids
     r = requests.get(url=beacons_url)
     beacons = r.json()['data']
 
-    for satellite in satellites["above"]:
+    for satellite in filtered_sats:
         beacon = next((x for x in beacons if x["satid"] == satellite["satid"]), None)
         if beacon is None:
             continue
@@ -136,6 +140,8 @@ def get_nearby_satellites():
         print("Unexpected error:", e)
         return "{ \"error\" : \"Unexpected error.  Ensure that contains lat/lng/alt parameters\"}"
 
+    return_data = None
+
     try:
         row = get_last_cached_row(altitude, latitude, longitude)
         expired = False
@@ -143,8 +149,6 @@ def get_nearby_satellites():
         # If we found a row, check if its expired
         if row is not None:
             expired = row[1] <= time()
-
-        return_data = None
 
         # If no item was found or the ttl passed, we need to query api again
         if row is None or expired:
@@ -224,11 +228,9 @@ def print_beacon_information():
         print("unable to retrieve beacon data: " + e)
         return "{ \"error\" : \"Unexpected error fetching from database\"}"
 
-
-@app.route('/update_beacons')
-def get_beacon_information():
-    # GET BEACON DATA
-    # satellite list as provided by N2Y0
+# GET BEACON DATA
+# satellite list as provided by N2Y0
+def get_csv():
     beac_url = 'http://www.ne.jp/asahi/hamradio/je9pel/satslist.csv'
     req = urllib.request.Request(beac_url)
     try:
@@ -241,17 +243,18 @@ def get_beacon_information():
     except urllib.error.URLError as e:
         print("Error opening beacon data url:", e.reason)
         return "{ \"error\": \"Unexpected error parsing csv data\" }"
-    existing_data = 1
 
-    # PARSE BEACON DATA
+# PARSE BEACON DATA
+def parse_beacons_csv():
     try:
         csv_data = open('./data/beacons.csv', 'r')
-        beacons = parse_csv(csv_data)
+        return parse_csv(csv_data)
     except Exception as e:
         print("Error parsing csv data:", e)
         return "{ \"error\": \"Unexpected error parsing csv data\" }"
 
-    # ADD DATA TO DATABASE
+# ADD DATA TO DATABASE
+def post_beacons(mysql, beacons):
     try:
         post_data(mysql, beacons)
         data = {"data": beacons}
@@ -260,8 +263,16 @@ def get_beacon_information():
         print("Error posting csv data to database:", e)
         return "{ \"error\": \"Unexpected error posting csv data\" }"
 
-    return "beacon data updated"
+@app.route('/update_beacons')
+def get_beacon_information():
+    get_csv()
+    beacons = parse_beacons_csv()
+    return post_beacons(mysql, beacons)
 
+# schedule update_beacons to run once daily
+sched = BackgroundScheduler(daemon = True)
+sched.add_job(get_beacon_information, 'cron', hour = 0)
+sched.start()
 
 if __name__ == '__main__':
     app.run()
