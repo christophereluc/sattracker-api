@@ -10,6 +10,6 @@ Jinja2==2.11.3
 MarkupSafe==1.1.1
 mysqlclient==1.4.4
 requests==2.22.0
-urllib3==1.25.8
+urllib3==1.26.5
 Werkzeug==0.16.0
 APScheduler==3.6.3
